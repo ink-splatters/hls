@@ -1,4 +1,5 @@
 import pathlib
+import sys
 import typing as t
 from urllib.parse import urlparse
 
@@ -32,17 +33,29 @@ class SourceType(click.ParamType):
 
     def convert(
         self,
-        value: str,
+        value: str | None,
         param: click.Parameter | None,
         ctx: click.Context | None,
     ) -> Source:
         """Source converter
-        Returns string if urlparse detected schema, otherwise Path (pathlib.Path by default).
+        Returns:
+        - sys.stdin if value is '-' or None (for optional arguments)
+        - string if urlparse detected schema (URL)
+        - Path (pathlib.Path by default) for file paths
+
+        This follows Unix CLI conventions where '-' means stdin and
+        omitting the argument defaults to stdin for stream processing tools.
         """
 
+        # Handle stdin: explicit '-' or None (when argument is optional)
+        if value == "-" or value is None:
+            return sys.stdin
+
+        # Check if it's a URL
         if urlparse(value).scheme:
             param_type = UrlParamType(**self._url_opts)
-            return t.cast(str, param_type.convert(value, param, ctx))
+            return t.cast("str", param_type.convert(value, param, ctx))
         else:
+            # File path
             param_type = click.Path(**self._path_opts)
-            return t.cast(pathlib.Path, param_type.convert(value, param, ctx))
+            return t.cast("pathlib.Path", param_type.convert(value, param, ctx))

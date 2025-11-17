@@ -1,3 +1,6 @@
+import io
 import pathlib
 
-type Source = pathlib.Path | str
+# Source can be a Path (file), str (URL), or TextIOWrapper (stdin)
+# We use TextIOWrapper to type hint stdin/stdout/stderr file objects
+type Source = pathlib.Path | str | io.TextIOWrapper
