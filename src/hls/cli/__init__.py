@@ -17,16 +17,18 @@ class MutuallyExclusiveOption(click.Option):
     def handle_parse_result(self, ctx: click.Context, opts: dict, args: list) -> tuple:
         current = self.name in opts and opts[self.name] is not None
         for other in self.not_required_if:
-            if other in opts and opts[other] is not None:
-                if current:
-                    raise click.UsageError(f"--{self.name.replace('_', '-')} and --{other.replace('_', '-')} are mutually exclusive")
+            if other in opts and opts[other] is not None and current:
+                raise click.UsageError(
+                    f"--{self.name.replace('_', '-')} and --{other.replace('_', '-')} are mutually exclusive"
+                )
         return super().handle_parse_result(ctx, opts, args)
 
 
 def source_options(func):
     """Decorator adding -f/--file and -u/--url options."""
     func = click.option(
-        "-u", "--url",
+        "-u",
+        "--url",
         type=str,
         default=None,
         help="URL to fetch M3U8 from. Use '-' to read URL from stdin.",
@@ -34,7 +36,8 @@ def source_options(func):
         not_required_if=["file"],
     )(func)
     func = click.option(
-        "-f", "--file",
+        "-f",
+        "--file",
         type=click.Path(exists=True, dir_okay=False, allow_dash=True),
         default=None,
         help="File path to read M3U8 from. Use '-' for stdin (default).",
