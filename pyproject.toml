@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "hls"
-dynamic = ["version"]
+version = "0.3.1"
 description = "HLS playlist utils"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,6 +16,8 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -25,19 +27,6 @@ dependencies = [
     "click-params>=0.5.0",
     "m3u8>=6.0.0",
 ]
-
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.uv-dynamic-versioning]
-vcs = "git"
-style = "semver"
-
-[tool.hatch.build.hooks.version]
-path = "src/hls/_version.py"
-template = '''
-__version__ = "{version}"
-'''
 
 [project.scripts]
 hls = "hls.cli:hls"
