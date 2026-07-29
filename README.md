@@ -2,6 +2,12 @@
 
 Tool for manipulating HLS (m3u8) playlists.
 
+## Installation
+
+```bash
+uv tool install 'hls @ git+https://github.com/ink-splatters/hls'
+```
+
 ## TODO
 
 - [x] m3u8 network source
