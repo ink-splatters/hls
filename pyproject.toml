@@ -32,17 +32,21 @@ dependencies = [
 hls = "hls.cli:hls"
 
 [tool.poe.tasks]
-format = "ruff format"
-lint = "ruff check"
-typecheck = "ty"
-ruff-fix = "ruff check --fix"
-check = ["lint", "typecheck"]
-fix = ["format", "ruff-fix"]
-
-# Testing
+typecheck = "ty check"
+lint = ["ruff:check", "typecheck", "zizmor"]
+check=["lint"]
+fix = ["ruff:format", "ruff:fix", "typecheck", "zizmor"]
 test = "pytest -q"
-zizmor = "zizmor ."
+zizmor = "zizmor -p ."
 
+[tool.poe.tasks."ruff:format"]
+cmd = "ruff format"
+
+[tool.poe.tasks."ruff:check"]
+cmd = "ruff check"
+
+[tool.poe.tasks."ruff:fix"]
+cmd = "ruff check --fix"
 
 [tool.poe]
 executor = { type = "uv" }
