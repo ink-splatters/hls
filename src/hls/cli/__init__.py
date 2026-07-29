@@ -1,5 +1,7 @@
 import re
 import sys
+import typing as t
+from collections.abc import Mapping
 from urllib.parse import urljoin
 
 import click
@@ -15,7 +17,12 @@ class MutuallyExclusiveOption(click.Option):
         self.not_required_if = not_required_if or []
         super().__init__(*args, **kwargs)
 
-    def handle_parse_result(self, ctx: click.Context, opts: dict, args: list) -> tuple:
+    def handle_parse_result(
+        self,
+        ctx: click.Context,
+        opts: Mapping[str, t.Any],
+        args: list[str],
+    ) -> tuple[t.Any, list[str]]:
         current = self.name in opts and opts[self.name] is not None
         for other in self.not_required_if:
             if other in opts and opts[other] is not None and current:
@@ -111,7 +118,7 @@ def get_all_urls(playlist: m3u8.M3U8) -> list[str]:
     # Add init segment if present (from #EXT-X-MAP)
     if playlist.segment_map:
         for init in playlist.segment_map:
-            if init.uri:
+            if init is not None and init.uri:
                 urls.append(init.uri)
 
     # Add all segment URLs

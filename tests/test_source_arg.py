@@ -1,9 +1,21 @@
 import inspect
+import typing as t
+from collections.abc import Callable
 
 import click
 import pytest
 
-from hls.cli.source import Source, source_arg
+from hls.cli.source import Source, SourceType, source_arg
+
+
+class ClickDecorated(t.Protocol):
+    __click_params__: list[click.Parameter]
+
+    def __call__(self, *args: t.Any, **kwargs: t.Any) -> t.Any: ...
+
+
+def get_click_params(command: Callable[..., t.Any]) -> list[click.Parameter]:
+    return t.cast("ClickDecorated", command).__click_params__
 
 
 @pytest.mark.unit
@@ -19,7 +31,7 @@ class TestSourceArgDecorator:
 
         # Check that the decorator was applied
         assert hasattr(my_command, "__click_params__")
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert len(params) == 1
         assert params[0].name == "source"
 
@@ -32,7 +44,7 @@ class TestSourceArgDecorator:
 
         # Check that the decorator was applied
         assert hasattr(my_command, "__click_params__")
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert len(params) == 1
         assert params[0].name == "source"
 
@@ -43,7 +55,7 @@ class TestSourceArgDecorator:
         def my_command(playlist: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert params[0].name == "playlist"
 
     def test_decorator_with_custom_path_opts(self):
@@ -53,7 +65,7 @@ class TestSourceArgDecorator:
         def my_command(source: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert params[0].name == "source"
         # The type should be SourceType
         assert params[0].type.__class__.__name__ == "SourceType"
@@ -105,7 +117,7 @@ class TestSourceArgDecorator:
         def my_command(source: Source, verbose: bool) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert len(params) == 2
         # Check both params exist (order may vary)
         param_names = {p.name for p in params}
@@ -118,8 +130,9 @@ class TestSourceArgDecorator:
         def my_command(source: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         source_param = params[0]
+        assert isinstance(source_param.type, SourceType)
 
         # The SourceType should have been created with default options
         assert source_param.type._path_opts["exists"] is True
@@ -143,7 +156,7 @@ class TestSourceArgDecorator:
         def my_command(input: Source, output: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         assert len(params) == 2
         # Check both params exist (order may vary)
         param_names = {p.name for p in params}
@@ -172,7 +185,7 @@ class TestSourceArgDecorator:
         def my_command(source: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         source_param = params[0]
 
         # Check that the argument is optional
@@ -186,7 +199,7 @@ class TestSourceArgDecorator:
         def my_command(source: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         source_param = params[0]
 
         # Check that the argument is required
@@ -199,7 +212,7 @@ class TestSourceArgDecorator:
         def my_command(source: Source) -> None:
             pass
 
-        params = my_command.__click_params__  # type: ignore[attr-defined]
+        params = get_click_params(my_command)
         source_param = params[0]
 
         # By default, source should be optional (Unix convention)
