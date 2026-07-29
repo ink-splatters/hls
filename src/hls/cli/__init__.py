@@ -1,3 +1,4 @@
+import re
 import sys
 from urllib.parse import urljoin
 
@@ -24,8 +25,39 @@ class MutuallyExclusiveOption(click.Option):
         return super().handle_parse_result(ctx, opts, args)
 
 
+class HeaderParamType(click.ParamType):
+    """HTTP header in curl's ``Name: value`` form."""
+
+    name = "header"
+
+    def convert(
+        self,
+        value: str | tuple[str, str] | None,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> tuple[str, str]:
+        if isinstance(value, tuple):
+            return value
+        if value is None or ":" not in value:
+            self.fail("must be in 'Name: value' form", param, ctx)
+
+        name, header_value = value.split(":", 1)
+        name = name.strip()
+        if not name:
+            self.fail("header name cannot be empty", param, ctx)
+
+        return name, header_value.strip()
+
+
 def source_options(func):
-    """Decorator adding -f/--file and -u/--url options."""
+    """Decorator adding playlist source and request header options."""
+    func = click.option(
+        "-H",
+        "--headers",
+        type=HeaderParamType(),
+        multiple=True,
+        help="HTTP request header in 'Name: value' form. May be repeated.",
+    )(func)
     func = click.option(
         "-u",
         "--url",
@@ -47,7 +79,11 @@ def source_options(func):
     return func
 
 
-def load_playlist(file: str | None, url: str | None) -> tuple[m3u8.M3U8, str | None]:
+def load_playlist(
+    file: str | None,
+    url: str | None,
+    headers: tuple[tuple[str, str], ...] = (),
+) -> tuple[m3u8.M3U8, str | None]:
     """Load M3U8 playlist from file or URL.
 
     Returns:
@@ -58,7 +94,7 @@ def load_playlist(file: str | None, url: str | None) -> tuple[m3u8.M3U8, str | N
         if url == "-":
             # Read URL from stdin
             url = sys.stdin.read().strip()
-        return m3u8.load(url), url
+        return m3u8.load(url, headers=dict(headers)), url
     else:
         # File mode (default: stdin)
         if file is None or file == "-":
@@ -84,6 +120,24 @@ def get_all_urls(playlist: m3u8.M3U8) -> list[str]:
     return urls
 
 
+def infer_base_url(playlist: m3u8.M3U8) -> str | None:
+    """Infer a media-directory URL from the base URI resolved by m3u8."""
+    if not playlist.base_uri:
+        return None
+
+    candidate = playlist.base_uri.rstrip("/")
+    if re.search(r"\.[\w]+$", candidate):
+        return candidate
+
+    return None
+
+
+def resolve_urls(urls: list[str], base_url: str) -> list[str]:
+    """Resolve playlist URLs relative to a directory URL."""
+    directory_url = f"{base_url.rstrip('/')}/"
+    return [urljoin(directory_url, url) for url in urls]
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=False)
 @click.version_option(version=__version__, prog_name="hls")
 def hls() -> None:
@@ -93,7 +147,12 @@ def hls() -> None:
 @hls.command()
 @source_options
 @click.option("--base-url", type=str, default=None, help="Base URL for resolving relative paths.")
-def urls(file: str | None, url: str | None, base_url: str | None) -> None:
+def urls(
+    file: str | None,
+    url: str | None,
+    headers: tuple[tuple[str, str], ...],
+    base_url: str | None,
+) -> None:
     """Extract segment URLs from M3U8 playlist.
 
     By default reads M3U8 content from stdin. Use -u to fetch from URL.
@@ -104,23 +163,26 @@ def urls(file: str | None, url: str | None, base_url: str | None) -> None:
         hls urls -u https://example.com/playlist.m3u8
         echo "https://example.com/playlist.m3u8" | hls urls -u -
     """
-    playlist, source_url = load_playlist(file, url)
+    playlist, source_url = load_playlist(file, url, headers)
 
-    # Default base_url to source URL if loading from URL
-    if base_url is None:
-        base_url = source_url
+    if base_url is None and source_url is not None:
+        base_url = infer_base_url(playlist)
 
     result = get_all_urls(playlist)
 
     if base_url:
-        result = [urljoin(base_url, u) for u in result]
+        result = resolve_urls(result, base_url)
 
     print("\n".join(result))
 
 
 @hls.command()
 @source_options
-def dump(file: str | None, url: str | None) -> None:
+def dump(
+    file: str | None,
+    url: str | None,
+    headers: tuple[tuple[str, str], ...],
+) -> None:
     """Dump M3U8 playlist contents.
 
     By default reads M3U8 content from stdin. Use -u to fetch from URL.
@@ -131,5 +193,5 @@ def dump(file: str | None, url: str | None) -> None:
         hls dump -u https://example.com/playlist.m3u8
         echo "https://example.com/playlist.m3u8" | hls dump -u -
     """
-    playlist, _ = load_playlist(file, url)
+    playlist, _ = load_playlist(file, url, headers)
     print(playlist.dumps())
