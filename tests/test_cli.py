@@ -12,19 +12,36 @@ MEDIA_PLAYLIST_URL = (
 MEDIA_BASE_URL = (
     "https://hv-h.phncdn.com/hls/c6251/videos/202512/29/34178225/1080P_4000K_34178225.mp4"
 )
+STANDARD_PLAYLIST_URL = (
+    "https://video-nss.xhcdn.com/E-WnyFOdficMzbSfj3eqpA==,1785549600/"
+    "media=hls4/multi=256x144:144p:,426x240:240p:,854x480:480p:,"
+    "1280x720:720p:,1920x1080:1080p:/024/753/070/1080p.av1.mp4.m3u8"
+)
+STANDARD_BASE_URL = STANDARD_PLAYLIST_URL.rsplit("/", 1)[0]
 
 
 @pytest.mark.unit
 class TestBaseUrlInference:
-    def test_infers_file_like_parent_from_m3u8_base_uri(self):
+    def test_uses_base_uri_resolved_by_m3u8(self):
         playlist = m3u8.loads(PLAYLIST, uri=MEDIA_PLAYLIST_URL)
 
-        assert infer_base_url(playlist) == MEDIA_BASE_URL
+        assert infer_base_url(playlist, MEDIA_PLAYLIST_URL) == MEDIA_BASE_URL
 
-    def test_does_not_infer_directory_without_file_extension(self):
-        playlist = m3u8.loads(PLAYLIST, uri="https://example.com/hls/index.m3u8")
+    def test_uses_resolved_base_uri_without_file_extension(self):
+        playlist_url = "https://example.com/hls/index.m3u8"
+        playlist = m3u8.loads(PLAYLIST, uri=playlist_url)
 
-        assert infer_base_url(playlist) is None
+        assert infer_base_url(playlist, playlist_url) == "https://example.com/hls"
+
+    def test_falls_back_to_file_like_parent(self):
+        playlist = m3u8.loads(PLAYLIST)
+
+        assert infer_base_url(playlist, MEDIA_PLAYLIST_URL) == MEDIA_BASE_URL
+
+    def test_does_not_infer_when_library_and_heuristic_fail(self):
+        playlist = m3u8.loads(PLAYLIST)
+
+        assert infer_base_url(playlist, "https://example.com/hls/index.m3u8") is None
 
     def test_urls_uses_inferred_base_url(self, mocker):
         playlist = m3u8.loads(PLAYLIST, uri=MEDIA_PLAYLIST_URL)
@@ -37,13 +54,23 @@ class TestBaseUrlInference:
 
     def test_urls_leaves_relative_urls_when_inference_fails(self, mocker):
         playlist_url = "https://example.com/hls/index.m3u8"
-        playlist = m3u8.loads(PLAYLIST, uri=playlist_url)
+        playlist = m3u8.loads(PLAYLIST)
         mocker.patch("hls.cli.m3u8.load", return_value=playlist)
 
         result = CliRunner().invoke(hls, ["urls", "--url", playlist_url])
 
         assert result.exit_code == 0
         assert result.output == "segment.ts\n"
+
+    def test_urls_uses_standard_playlist_directory_from_log(self, mocker):
+        content = '#EXTM3U\n#EXT-X-MAP:URI="1080p.av1.mp4/init-v1-a1.mp4"\n'
+        playlist = m3u8.loads(content, uri=STANDARD_PLAYLIST_URL)
+        mocker.patch("hls.cli.m3u8.load", return_value=playlist)
+
+        result = CliRunner().invoke(hls, ["urls", "--url", STANDARD_PLAYLIST_URL])
+
+        assert result.exit_code == 0
+        assert result.output == f"{STANDARD_BASE_URL}/1080p.av1.mp4/init-v1-a1.mp4\n"
 
     def test_explicit_base_url_skips_inference(self, mocker):
         playlist = m3u8.loads(PLAYLIST, uri=MEDIA_PLAYLIST_URL)

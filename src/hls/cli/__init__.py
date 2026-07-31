@@ -127,12 +127,12 @@ def get_all_urls(playlist: m3u8.M3U8) -> list[str]:
     return urls
 
 
-def infer_base_url(playlist: m3u8.M3U8) -> str | None:
-    """Infer a media-directory URL from the base URI resolved by m3u8."""
-    if not playlist.base_uri:
-        return None
+def infer_base_url(playlist: m3u8.M3U8, playlist_url: str) -> str | None:
+    """Infer a media-directory URL, preferring m3u8's resolved base URI."""
+    if playlist.base_uri:
+        return playlist.base_uri.rstrip("/")
 
-    candidate = playlist.base_uri.rstrip("/")
+    candidate = playlist_url.rsplit("/", 1)[0]
     if re.search(r"\.[\w]+$", candidate):
         return candidate
 
@@ -173,7 +173,7 @@ def urls(
     playlist, source_url = load_playlist(file, url, headers)
 
     if base_url is None and source_url is not None:
-        base_url = infer_base_url(playlist)
+        base_url = infer_base_url(playlist, source_url)
 
     result = get_all_urls(playlist)
 
