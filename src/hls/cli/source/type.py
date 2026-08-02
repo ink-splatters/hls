@@ -1,6 +1,6 @@
-import pathlib
 import sys
 import typing as t
+import pathlib
 from urllib.parse import urlparse
 
 import click
@@ -8,7 +8,8 @@ import click
 # https://click-params.readthedocs.io
 from click_params.domain import UrlParamType
 
-from .source import Source
+if t.TYPE_CHECKING:
+    from .source import Source
 
 
 class SourceType(click.ParamType):

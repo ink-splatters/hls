@@ -1,13 +1,15 @@
 import re
 import sys
 import typing as t
-from collections.abc import Mapping
 from urllib.parse import urljoin
 
-import click
 import m3u8
+import click
 
 from .. import __version__
+
+if t.TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class MutuallyExclusiveOption(click.Option):

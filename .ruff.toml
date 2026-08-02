@@ -29,7 +29,7 @@ select = [
 
   # Code quality from upgrade/pyproject.toml
   "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings  
+  "W",   # pycodestyle warnings
   "F",   # pyflakes
   "I",   # isort - import sorting
   "N",   # pep8-naming

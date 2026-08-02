@@ -1,11 +1,13 @@
-import inspect
 import typing as t
-from collections.abc import Callable
+import inspect
 
 import click
 import pytest
 
 from hls.cli.source import Source, SourceType, source_arg
+
+if t.TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ClickDecorated(t.Protocol):

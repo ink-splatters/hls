@@ -1,9 +1,11 @@
 import typing as t
-from collections.abc import Callable
 
 import click
 
 from .type import SourceType
+
+if t.TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def source_arg(
