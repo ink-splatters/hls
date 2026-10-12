@@ -1,7 +1,7 @@
 from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("apfs-hcp-patcher")
+    __version__ = version("stream-parser")
 except PackageNotFoundError:
     __version__ = "dev"
 
