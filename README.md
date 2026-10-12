@@ -7,13 +7,10 @@ Requires Python 3.14 or newer.
 ## Installation
 
 ```bash
-uv tool install --python 3.14 'git+https://github.com/ink-splatters/stream-parser.git'
+uv tool install 'git+https://github.com/ink-splatters/stream-parser.git'
 ```
 
-This installs the `hls` and `dash` commands. DASH support uses the
-[`mpd-parser` fork](https://github.com/ink-splatters/mpd-parser/tree/v0.3.0-dev)
-at `v0.3.0-dev`. PyPI publication is disabled until that dependency is available
-from PyPI; install from Git in the meantime.
+TODO: PyPI publication
 
 ## Usage
 
@@ -102,8 +99,8 @@ both protocol packages and their CLIs under `stream_parser`.
 - [x] Provide Python APIs and separate `hls` and `dash` commands.
 - [ ] Use a PyPI-sourced `mpd-parser` dependency and enable PyPI publication.
 - [ ] Download media or delegate to a download manager, with track/representation
-      selection and byte-range handling.
+  selection and byte-range handling.
 - [ ] Assemble downloaded media with FFmpeg, handling initialization segments
-      and separate audio/video tracks.
+  and separate audio/video tracks.
 - [ ] Explore a streaming server with configurable segment duration and optional
-      media processing.
+  media processing.
